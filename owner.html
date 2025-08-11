@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Owner Room - SorcerorHc</title>
+<style>
+  :root {
+    --bg: #05060a;
+    --panel: #0b1220;
+    --accent1: #0ea5ff;
+    --accent2: #3b82f6;
+    --text-light: #e6eef8;
+    --highlight: #ef4444;
+    --danger: #dc2626;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+  }
+  h1, h2 {
+    margin: 0.5rem 0;
+  }
+  section {
+    background: var(--panel);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+  }
+  label {
+    display: block;
+    margin: 0.4rem 0 0.2rem;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 0.4rem;
+    border-radius: 4px;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+  }
+  button {
+    background: var(--accent1);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #012033;
+    transition: background 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background: var(--accent2);
+  }
+  button:disabled {
+    background: #555;
+    cursor: not-allowed;
+  }
+  .danger-btn {
+    background: var(--danger);
+    color: #fff;
+  }
+  .danger-btn:hover {
+    background: #b91c1c;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+  }
+  li {
+    background: #0d172d;
+    margin-bottom: 0.3rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+  li span {
+    flex: 1;
+    word-break: break-word;
+  }
+  li button {
+    margin-left: 0.6rem;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.8rem;
+  }
+  .flex-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  @media (max-width: 480px) {
+    body {
+      padding: 0.8rem;
+    }
+    li {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    li button {
+      margin-left: 0;
+      margin-top: 0.3rem;
+      width: 100%;
+    }
+  }
+  audio {
+    position: fixed;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    outline: none;
+    border-radius: 8px;
+    width: 200px;
+    max-width: 90vw;
+  }
+</style>
+</head>
+<body>
+
+<h1>Ruang Owner - SorcerorHc</h1>
+
+<section aria-label="Kelola User">
+  <h2>Daftar User</h2>
+  <ul id="userList" role="list"></ul>
+  <form id="addUserForm" aria-label="Form Tambah User">
+    <label for="newUser">Nama User Baru (tanpa spasi):</label>
+    <input type="text" id="newUser" required pattern="^[^\s]+$" title="Tidak boleh ada spasi" />
+    <button type="submit">Buat User</button>
+  </form>
+</section>
+
+<section aria-label="Kelola Limit Spin User">
+  <h2>Atur Limit Spin User</h2>
+  <div class="flex-row">
+    <select id="userSelect" aria-label="Pilih User untuk ubah limit spin"></select>
+    <input type="number" id="spinLimitInput" min="0" step="1" aria-label="Input limit spin baru" />
+    <button id="updateLimitBtn">Update Limit Spin</button>
+  </div>
+</section>
+
+<section aria-label="Kelola Hadiah">
+  <h2>Hadiah</h2>
+  <ul id="prizeList" role="list"></ul>
+  <form id="addPrizeForm" aria-label="Form Tambah Hadiah">
+    <label for="prizeName">Nama Hadiah:</label>
+    <input type="text" id="prizeName" required />
+    <label for="prizeChance">Chance (%) :</label>
+    <input type="number" id="prizeChance" required min="1" max="100" />
+    <button type="submit">Tambah Hadiah</button>
+  </form>
+</section>
+
+<!-- Audio One More Night -->
+<audio controls autoplay loop muted>
+  <source src="https://cdn.pixabay.com/download/audio/2023/05/16/audio_62c37a23e7.mp3?filename=one-more-night-11391.mp3" type="audio/mpeg" />
+  Your browser does not support the audio element.
+</audio>
+
+<script>
+  const DB_KEY = 'spin_db_v2';
+
+  // Load or init DB
+  let dbRaw = localStorage.getItem(DB_KEY);
+  let db = dbRaw ? JSON.parse(dbRaw) : {
+    users: [{username: 'owner', isOwner: true, spinLimit: 0}],
+    prizes: []
+  };
+
+  // --- Helper Save ---
+  function saveDB() {
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    refreshUI();
+  }
+
+  // --- UI Elements ---
+  const userListEl = document.getElementById('userList');
+  const addUserForm = document.getElementById('addUserForm');
+  const newUserInput = document.getElementById('newUser');
+  const userSelect = document.getElementById('userSelect');
+  const spinLimitInput = document.getElementById('spinLimitInput');
+  const updateLimitBtn = document.getElementById('updateLimitBtn');
+
+  const prizeListEl = document.getElementById('prizeList');
+  const addPrizeForm = document.getElementById('addPrizeForm');
+  const prizeNameInput = document.getElementById('prizeName');
+  const prizeChanceInput = document.getElementById('prizeChance');
+
+  // --- Render Users List ---
+  function renderUsers() {
+    userListEl.innerHTML = '';
+    userSelect.innerHTML = '';
+    db.users.forEach(user => {
+      if (user.isOwner) return; // skip owner
+
+      // List user with delete button
+      const li = document.createElement('li');
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = `${user.username} (Limit Spin: ${user.spinLimit || 0})`;
+      li.appendChild(nameSpan);
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Hapus';
+      delBtn.className = 'danger-btn';
+      delBtn.setAttribute('aria-label', `Hapus user ${user.username}`);
+      delBtn.onclick = () => {
+        if (confirm(`Hapus user "${user.username}"? Data spin dan hadiah akan hilang.`)) {
+          db.users = db.users.filter(u => u.username !== user.username);
+          saveDB();
+        }
+      };
+      li.appendChild(delBtn);
+      userListEl.appendChild(li);
+
+      // Add to select option
+      const opt = document.createElement('option');
+      opt.value = user.username;
+      opt.textContent = user.username;
+      userSelect.appendChild(opt);
+    });
+  }
+
+  // --- Render Prizes List ---
+  function renderPrizes() {
+    prizeListEl.innerHTML = '';
+    db.prizes.forEach((prize, index) => {
+      const li = document.createElement('li');
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = `${prize.name} (Chance: ${prize.chance}%)`;
+      li.appendChild(nameSpan);
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Hapus';
+      delBtn.className = 'danger-btn';
+      delBtn.setAttribute('aria-label', `Hapus hadiah ${prize.name}`);
+      delBtn.onclick = () => {
+        if (confirm(`Hapus hadiah "${prize.name}"?`)) {
+          db.prizes.splice(index, 1);
+          saveDB();
+        }
+      };
+      li.appendChild(delBtn);
+
+      prizeListEl.appendChild(li);
+    });
+  }
+
+  // --- Refresh UI ---
+  function refreshUI() {
+    renderUsers();
+    renderPrizes();
+    spinLimitInput.value = '';
+  }
+
+  // --- Add User Handler ---
+  addUserForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const username = newUserInput.value.trim();
+    if (!username) return alert('Nama user tidak boleh kosong');
+    if (db.users.find(u => u.username === username)) {
+      return alert('User sudah ada');
+    }
+    db.users.push({username, spinLimit: 5, isOwner: false, lastPrize: null});
+    saveDB();
+    newUserInput.value = '';
+  });
+
+  // --- Update Spin Limit Handler ---
+  updateLimitBtn.addEventListener('click', () => {
+    const selectedUser = userSelect.value;
+    const newLimit = parseInt(spinLimitInput.value);
+    if (!selectedUser) return alert('Pilih user dulu');
+    if (isNaN(newLimit) || newLimit < 0) return alert('Masukkan limit spin valid (0 atau lebih)');
+
+    const user = db.users.find(u => u.username === selectedUser);
+    if (!user) return alert('User tidak ditemukan');
+    user.spinLimit = newLimit;
+    saveDB();
+  });
+
+  // --- Add Prize Handler ---
+  addPrizeForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const name = prizeNameInput.value.trim();
+    const chance = parseInt(prizeChanceInput.value);
+    if (!name) return alert('Nama hadiah tidak boleh kosong');
+    if (isNaN(chance) || chance <= 0 || chance > 100) return alert('Chance harus antara 1-100');
+    db.prizes.push({name, chance});
+    saveDB();
+    prizeNameInput.value = '';
+    prizeChanceInput.value = '';
+  });
+
+  // Init
+  refreshUI();
+
+  // --- Authentication check ---
+  const currentUserRaw = localStorage.getItem('spin_current_user');
+  if (!currentUserRaw) {
+    alert('Silakan login terlebih dahulu.');
+    window.location.href = 'index.html';
+  }
+  const currentUser = JSON.parse(currentUserRaw);
+  if (!currentUser.isOwner) {
+    alert('Akses ruang owner hanya untuk owner!');
+    window.location.href = 'spin.html';
+  }
+</script>
+
+</body>
+</html>

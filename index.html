@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Login Spin Wheel</title>
+<style>
+  :root {
+    --bg: #05060a;
+    --panel: #0b1220;
+    --accent1: #0ea5ff;
+    --accent2: #3b82f6;
+    --text-light: #e6eef8;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+  }
+  #login-box {
+    background: var(--panel);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 0 20px var(--accent1);
+    width: 320px;
+    max-width: 90vw;
+    z-index: 1;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--accent2);
+  }
+  label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+  }
+  input[type="text"],
+  input[type="password"] {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    margin-bottom: 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+  }
+  button {
+    width: 100%;
+    background: var(--accent1);
+    border: none;
+    padding: 0.7rem;
+    border-radius: 5px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #012033;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: var(--accent2);
+  }
+  .note {
+    font-size: 0.9rem;
+    color: #a3bffa;
+    margin-top: -0.8rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  audio {
+    position: fixed;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    outline: none;
+    border-radius: 8px;
+  }
+  @media (max-width: 400px) {
+    #login-box {
+      padding: 1.5rem;
+      width: 90vw;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div id="login-box">
+  <h1>Login Spin Wheel</h1>
+  <form id="login-form">
+    <label for="username">Username</label>
+    <input id="username" type="text" autocomplete="off" required />
+    
+    <div id="password-container">
+      <label for="password">Password (Owner Only)</label>
+      <input id="password" type="password" autocomplete="off" />
+      <div class="note">Untuk user biasa, kosongkan password</div>
+    </div>
+
+    <button type="submit">Login</button>
+  </form>
+</div>
+
+<!-- Audio One More Night by Maroon 5 -->
+<audio controls autoplay loop muted>
+  <source src="https://cdn.pixabay.com/download/audio/2022/03/26/audio_45a710ac6e.mp3?filename=one-more-night-7367.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
+</audio>
+
+<script>
+  const ownerCredentials = {
+    username: 'CukimayPemai',
+    password: 'KontolJawa'
+  };
+
+  const form = document.getElementById('login-form');
+  form.onsubmit = e => {
+    e.preventDefault();
+    const username = form.username.value.trim();
+    const password = form.password.value;
+
+    if (!username) {
+      alert('Username tidak boleh kosong');
+      return;
+    }
+
+    if (username === ownerCredentials.username) {
+      // Owner login must provide correct password
+      if (password !== ownerCredentials.password) {
+        alert('Password owner salah');
+        return;
+      }
+      // Set owner session
+      localStorage.setItem('spin_current_user', JSON.stringify({ username: ownerCredentials.username, isOwner: true }));
+      window.location.href = 'owner.html';
+      return;
+    }
+
+    // User login (no password)
+    // Load DB
+    const dbRaw = localStorage.getItem('spin_db_v2');
+    if (!dbRaw) {
+      alert('Database tidak ditemukan, hubungi owner.');
+      return;
+    }
+    const db = JSON.parse(dbRaw);
+    const user = db.users.find(u => u.username === username);
+    if (!user) {
+      alert('User tidak ditemukan, hubungi owner.');
+      return;
+    }
+
+    // Set user session
+    localStorage.setItem('spin_current_user', JSON.stringify({ username: user.username, isOwner: false }));
+    window.location.href = 'spin.html';
+  };
+</script>
+
+</body>
+</html>
